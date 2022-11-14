@@ -1,7 +1,9 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -68,9 +70,28 @@ var Coordinates = []*Coordinate{
 	{114.142968, 22.281201},
 }
 
+//go:embed target/*
+var file embed.FS
+
 func main() {
+	//go func() {
+	//	r := gin.Default()
+	//	r.GET("/", func(c *gin.Context) {
+	//		fmt.Println("=== PING")
+	//		c.File("/Users/huwenhao/Downloads/111.mp4")
+	//		//c.JSON(http.StatusOK, &Body{Meta: Meta{Code: http.StatusOK}})
+	//	})
+	//	r.Run("0.0.0.0:8888") // listen and serve on 0.0.0.0:8080
+	//}()
 	fmt.Println(strings.Repeat("=", 50))
 	fmt.Println("=== mock服务器启动")
+	fmt.Println("=== 请输入树莓派视频访问地址(例: http://192.168.1.3:8888):")
+	var target string
+	fmt.Scanln(&target)
+	if _, err := url.Parse(target); err != nil {
+		fmt.Printf("=== 地址格式错误, err: %v\n", err)
+		return
+	}
 	fmt.Println("=== 创建临时文件夹")
 	if _, err := os.Stat("./tmp"); os.IsNotExist(err) {
 		if err = os.Mkdir("./tmp", os.ModePerm); err != nil {
@@ -87,10 +108,25 @@ func main() {
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		fmt.Println("=== PING")
-		c.JSON(http.StatusOK, &Body{Meta: Meta{Code: http.StatusOK}})
-	})
+
+	// 路由
+	{
+		web, err := fs.Sub(file, "target")
+		if err != nil {
+			fmt.Printf("%v", err)
+			return
+		}
+		r.StaticFS("/web", http.FS(web))
+
+		r.GET("/index", func(c *gin.Context) {
+			// c.JSON：返回JSON格式的数据
+			c.Redirect(http.StatusPermanentRedirect, "web/index.html")
+		})
+		r.GET("/", func(c *gin.Context) {
+			c.Redirect(http.StatusPermanentRedirect, "/index")
+		})
+	}
+
 	r.POST("/v1/devices/:id/coordinates", func(c *gin.Context) {
 		id := c.Param("id")
 		var p Params
@@ -167,13 +203,18 @@ func main() {
 			"msg": file.Filename,
 		})
 	})
-	r.Any("/v1/proxy", func(c *gin.Context) {
-		target := "baidu.com"
-		proxy := httputil.NewSingleHostReverseProxy(&url.URL{
-			Scheme: "http",
-			Host:   target,
-		})
-
+	r.GET("/v1/proxy", func(c *gin.Context) {
+		parse, err := url.Parse(target)
+		if err != nil {
+			fmt.Printf("代理地址解析 %s 出错, error: %+v\n", target, err)
+		}
+		proxy := httputil.NewSingleHostReverseProxy(parse)
+		proxy.Director = func(request *http.Request) {
+			request.Host = parse.Host
+			request.URL.Scheme = parse.Scheme
+			request.URL.Host = parse.Host
+			request.URL.Path = ""
+		}
 		proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 			fmt.Printf("代理访问 %s 出错, error: %+v\n", target, err)
 			writer.Write([]byte(err.Error()))
