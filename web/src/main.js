@@ -13,8 +13,13 @@ import { Popup } from 'vant';
 import { Tabbar, TabbarItem } from 'vant';
 import { Divider } from 'vant';
 import { NavBar } from 'vant';
+import axios from 'axios'
+import VueAxios from 'vue-axios'
 
-Vue.config.productionTip = false
+// 配置请求的根路径
+axios.defaults.baseURL = '/api/'
+
+Vue.use(VueAxios,axios);
 
 Vue.use(VueRouter)
 Vue.use(Button);

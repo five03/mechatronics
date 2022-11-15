@@ -55,6 +55,7 @@
     <van-button type="primary"
                 round
                 color="#FA6A51"
+                @click="onSubmit"
                 size="large">Submit</van-button>
   </div>
 </template>
@@ -65,16 +66,45 @@ export default {
     return {
       checked: false,
       value: '',
-      columns: ['Red', 'Green'],
+      columns: ['red', 'green'],
       showPicker: false,
       message: ""
     }
+  },
+  mounted () {
+    this.GetSettings()
+    this.GetMessageBoard()
   },
   methods: {
     onConfirm (value) {
       this.value = value;
       this.showPicker = false;
     },
+    onSubmit () {
+      this.axios.post(`/v1/devices/101/message-board?msg=${this.message}`).catch((e) => {
+        console.log(e)
+      })
+      this.GetMessageBoard(`/v1/devices/101/settings?`)
+
+      this.axios.patch(`/v1/devices/101/settings?led_switch=${this.value}`).catch((e) => {
+        console.log(e)
+      })
+      this.GetSettings()
+    },
+    GetSettings () {
+      this.axios.get('/v1/devices/101/settings').then((response) => {
+        this.value = response.data.data.led_switch
+      }).catch((e) => {
+        console.log(e)
+      })
+    },
+    GetMessageBoard () {
+      this.axios.get('/v1/devices/101/message-board').then((response) => {
+        this.message = response.data.data.message
+      }).catch((e) => {
+        console.log(e)
+      })
+    }
   },
 }
 </script>

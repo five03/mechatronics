@@ -22,7 +22,8 @@
     <div style="position: absolute;bottom: 90px; right:50px;">
       <van-button style="border-radius: 50px; height: 80px; box-shadow: 1px 1px 5px #888888;"
                   color="#FF1C24"
-                  type="primary">
+                  type="primary"
+                  @click="onClick">
         <b>ALARM</b>
       </van-button>
     </div>
@@ -38,6 +39,16 @@ export default {
     }
   },
   methods: {
+    onClick () {
+      this.axios.patch(`/v1/devices/101/settings?video_switch=true`).catch((e) => {
+        console.log(e)
+      })
+      this.axios.get('/v1/devices/101/settings').then((response) => {
+        console.log(response.data.data)
+      }).catch((e) => {
+        console.log(e)
+      })
+    }
   },
 }
 </script>

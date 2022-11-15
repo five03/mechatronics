@@ -15,8 +15,8 @@ export default {
   },
   data () {
     return {
-      //此处不声明 map 对象，可以直接使用 this.map赋值或者采用非响应式的普通对象来存储。
-      //map:null,
+      markerList: [],
+      path: []
     }
   },
   mounted () {
@@ -28,62 +28,53 @@ export default {
       AMapLoader.load({
         key: '80c0c6dad135569de66ac5f241004b23', // 申请好的Web端开发者Key，首次调用 load 时必填
       }).then((AMap) => {
-        this.map = new AMap.Map('container', {
+        var map = new AMap.Map('container', {
           //设置地图容器id
-          viewMode: '3D', //是否为3D地图模式
+          viewMode: '3D', // 地图模式
+          terrain: true, // 开启地形图
+          version: "2.0",
           zoom: 18, //初始化地图级别
-          pitch: 45,
+          pitch: 25,
+          lang: 'en',
           center: [114.142718, 22.280121], //初始化地图中心点位置
-          layers: [//使用多个图层
-            new AMap.TileLayer.Satellite(),
-            // new AMap.TileLayer.RoadNet()
-          ],
+          "AMapUI": {             // 是否加载 AMapUI，缺省不加载
+            "version": '1.1',   // AMapUI 版本
+            "plugins": ['overlay/SimpleMarker'],       // 需要加载的 AMapUI ui插件
+          },
         })
+        this.map = map;
 
-        // this.map.setLang('zh-en');
-
-        var marker1 = new AMap.Marker({
-          position: new AMap.LngLat(114.142718, 22.280121),//位置
-          title: '香港大学1'
+        this.axios.get('/v1/devices/101/coordinates').then((response) => {
+          var markerList = []
+          var path = []
+          response.data.data.forEach((item, index) => {
+            if (index % 4 == 0) {
+              markerList.push(new AMap.Marker({
+                position: [item.longitude, item.latitude],
+              }))
+            }
+            path.push([item.longitude, item.latitude]);
+          });
+          var polyline = new AMap.Polyline({
+            path: path,
+            strokeWeight: 4,
+            strokeColor: 'red', // 线条颜色
+            lineJoin: 'round' // 折线拐点连接处样式
+          });
+          //添加到地图
+          this.map.add(polyline);
+          this.map.add(markerList);
+        }).catch((response) => {
+          console.log(response);
         })
-        var marker2 = new AMap.Marker({
-          position: new AMap.LngLat(114.142858, 22.280321),//位置
-          title: '香港大学2'
-        })
-        var marker3 = new AMap.Marker({
-          position: new AMap.LngLat(114.142988, 22.280521),//位置
-          title: '香港大学3'
-        })
-        var markerList = [marker1, marker2, marker3];
-        this.map.add(markerList);//添加到地图
-
-        var path = [
-          new AMap.LngLat(114.142718, 22.280121),
-          new AMap.LngLat(114.142858, 22.280321),
-          new AMap.LngLat(114.142988, 22.280521),
-        ];
-        var polyline = new AMap.Polyline({
-          path: path,
-          strokeWeight: 8,
-          strokeColor: 'red', // 线条颜色
-          lineJoin: 'round' // 折线拐点连接处样式
-        });
-
-        // 将折线添加至地图实例
-        this.map.add(polyline);
-        // this.map.addControl(new AMap.Scale());
-        // this.map.addControl(new AMap.MapType());
-        // this.map.addControl(new AMap.HawkEye({ isOpen: true }));
+      }).catch((e) => {
+        console.log(e)
       })
-        .catch((e) => {
-          console.log(e)
-        })
     },
   },
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .index {
   height: 100%;
