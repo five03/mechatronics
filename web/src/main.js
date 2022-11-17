@@ -17,7 +17,7 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 
 // 配置请求的根路径
-axios.defaults.baseURL = '/api/'
+axios.defaults.baseURL = '/'
 
 Vue.use(VueAxios,axios);
 
